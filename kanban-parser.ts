@@ -100,10 +100,18 @@ export class KanbanParser {
               const nextLineTags = findTagsInLine(nextLine);
               tags = [...tags, ...nextLineTags];
 
-              // Extract time if available
-              const timeMatch = nextLine.match(/@@(\d{2}:\d{2})/);
-              if (timeMatch) {
-                time = timeMatch[1];
+              // Extract time if available (single time or time range)
+              const timeRangeMatch = nextLine.match(/@@(\d{2}:\d{2})-(\d{2}:\d{2})/);
+              const singleTimeMatch = nextLine.match(/@@(\d{2}:\d{2})/);
+              
+              if (timeRangeMatch) {
+                // Time range format: @@09:00-11:30
+                const startTime = timeRangeMatch[1];
+                const endTime = timeRangeMatch[2];
+                time = `${startTime}-${endTime}`;
+              } else if (singleTimeMatch) {
+                // Single time format: @@09:30
+                time = singleTimeMatch[1];
               }
 
               // Update parent date and tags if this is a parent task
@@ -139,12 +147,36 @@ export class KanbanParser {
           description = description.replace(/\*(.*?)\*/g, '$1').trim(); // Remove italic
           description = description.replace(/__(.*?)__/g, '$1').trim(); // Remove underline
 
+          // Parse time into startTime and endTime if it's a range
+          let startTime: string | undefined;
+          let endTime: string | undefined;
+          let displayTime: string | undefined;
+          
+          if (time) {
+            if (time.includes('-')) {
+              // Time range: "09:00-11:30"
+              const [start, end] = time.split('-');
+              startTime = start;
+              endTime = end;
+              displayTime = time; // Keep original format for display
+            } else {
+              // Single time: "09:30"
+              displayTime = time;
+              startTime = time;
+            }
+          }
+
+          // Generate a more stable ID based on content
+          const taskId = `task-${filePath.replace(/[^a-zA-Z0-9]/g, '_')}-${description.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}-${date}`;
+          
           // Add task to parsed tasks
           tasks.push({
-            id: `task-${Date.now()}-${Math.random()}`,
+            id: taskId,
             description,
             date,
-            time: time || undefined,
+            time: displayTime,
+            startTime,
+            endTime,
             tags,
             completed,
             source: filePath
@@ -176,5 +208,151 @@ export class KanbanParser {
     }
 
     return allTasks;
+  }
+
+  async updateTaskDateInFile(task: KanbanTask, newDate: string): Promise<boolean> {
+    try {
+      console.log(`Updating task "${task.description}" from ${task.date} to ${newDate} in file ${task.source}`);
+      
+      const file = this.vault.getAbstractFileByPath(task.source);
+      if (!(file instanceof TFile)) {
+        console.error('File not found:', task.source);
+        return false;
+      }
+
+      const content = await this.vault.read(file);
+      const lines = content.split('\n');
+      
+      // Find the task line by matching the description
+      let taskLineIndex = -1;
+      let foundTask = false;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check if this line contains a task with our description
+        if ((line.includes('- [ ]') || line.includes('- [x]')) && 
+            line.includes(task.description)) {
+          
+          // Additional verification: check if this line or nearby lines contain the old date
+          const checkLines = [line];
+          // Check up to 3 lines ahead for date information
+          for (let j = 1; j <= 3 && i + j < lines.length; j++) {
+            const nextLine = lines[i + j];
+            // Stop if we hit another task
+            if (nextLine.includes('- [ ]') || nextLine.includes('- [x]')) {
+              break;
+            }
+            checkLines.push(nextLine);
+          }
+          
+          // Check if any of these lines contain the old date
+          const combinedText = checkLines.join(' ');
+          if (combinedText.includes(`@{${task.date}}`)) {
+            taskLineIndex = i;
+            foundTask = true;
+            break;
+          }
+        }
+      }
+      
+      if (!foundTask) {
+        console.error('Task not found in file:', task.description);
+        return false;
+      }
+      
+      // Update the date in the found line and subsequent lines
+      let updated = false;
+      for (let i = taskLineIndex; i < Math.min(taskLineIndex + 4, lines.length); i++) {
+        const oldDatePattern = new RegExp(`@\\{${task.date.replace(/[-]/g, '\\-')}\\}`, 'g');
+        if (oldDatePattern.test(lines[i])) {
+          lines[i] = lines[i].replace(oldDatePattern, `@{${newDate}}`);
+          updated = true;
+          console.log(`Updated line ${i}: ${lines[i]}`);
+          break;
+        }
+      }
+      
+      if (!updated) {
+        console.error('Date pattern not found in task vicinity');
+        return false;
+      }
+      
+      // Write the updated content back to the file
+      const updatedContent = lines.join('\n');
+      await this.vault.modify(file, updatedContent);
+      
+      console.log('Task date updated successfully in file');
+      return true;
+      
+    } catch (error) {
+      console.error('Error updating task date in file:', error);
+      return false;
+    }
+  }
+
+  async addNewTaskToFile(filePath: string, taskDescription: string, date: string, time?: string, tags: string[] = []): Promise<boolean> {
+    try {
+      console.log(`Adding new task "${taskDescription}" to file ${filePath}`);
+      
+      const file = this.vault.getAbstractFileByPath(filePath);
+      if (!(file instanceof TFile)) {
+        console.error('File not found:', filePath);
+        return false;
+      }
+
+      const content = await this.vault.read(file);
+      const lines = content.split('\n');
+      
+      // Find the first column (usually "## Doing" or similar)
+      let insertIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('## ') && !lines[i].includes('done') && !lines[i].includes('Done')) {
+          // Find the end of this section to insert the new task
+          for (let j = i + 1; j < lines.length; j++) {
+            if (lines[j].startsWith('## ')) {
+              insertIndex = j;
+              break;
+            }
+          }
+          if (insertIndex === -1) {
+            insertIndex = lines.length;
+          }
+          break;
+        }
+      }
+      
+      if (insertIndex === -1) {
+        console.error('No suitable column found to add task');
+        return false;
+      }
+      
+      // Create the new task line
+      let newTaskLine = `- [ ] **${taskDescription}**`;
+      
+      // Add tags and date on the next line
+      let metaLine = '';
+      if (tags.length > 0) {
+        metaLine += tags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ') + ' ';
+      }
+      metaLine += `@{${date}}`;
+      if (time) {
+        metaLine += ` @@{${time}}`;
+      }
+      
+      // Insert the new task
+      lines.splice(insertIndex, 0, newTaskLine, `\t${metaLine}`);
+      
+      // Write back to file
+      const updatedContent = lines.join('\n');
+      await this.vault.modify(file, updatedContent);
+      
+      console.log('New task added successfully to file');
+      return true;
+      
+    } catch (error) {
+      console.error('Error adding new task to file:', error);
+      return false;
+    }
   }
 }

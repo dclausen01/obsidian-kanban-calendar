@@ -110,8 +110,61 @@ export class KanbanCalendarView extends ItemView {
         this.openTaskSource(task);
       },
       onTaskMove: async (task: KanbanTask, newDate: string) => {
-        // TODO: Implement task moving functionality
-        console.log("Moving task", task.id, "to", newDate);
+        console.log("Moving task", task.id, "from", task.date, "to", newDate);
+        
+        try {
+          // Update the task in the file first
+          const success = await this.parser.updateTaskDateInFile(task, newDate);
+          
+          if (success) {
+            // Update the task's date in the local tasks array
+            const taskIndex = this.tasks.findIndex(t => t.id === task.id);
+            if (taskIndex !== -1) {
+              this.tasks[taskIndex].date = newDate;
+              
+              // Re-render the component with updated tasks
+              this.renderComponent();
+              
+              console.log("Task moved successfully and saved to file");
+            }
+          } else {
+            console.error("Failed to update task in file");
+            // Optionally show user notification
+          }
+        } catch (error) {
+          console.error("Error moving task:", error);
+        }
+      },
+      onTaskCreate: async (taskData: { description: string; date: string; time?: string; tags: string[] }) => {
+        console.log("Creating new task:", taskData);
+        
+        try {
+          const settings = this.plugin.settings;
+          const targetFile = settings.defaultKanbanBoard || 'ToDo.md';
+          
+          // Add task to file
+          const success = await this.parser.addNewTaskToFile(
+            targetFile,
+            taskData.description,
+            taskData.date,
+            taskData.time,
+            taskData.tags
+          );
+          
+          if (success) {
+            // Reload tasks to include the new one
+            await this.loadTasks();
+            
+            // Force a complete re-render
+            this.renderComponent();
+            
+            console.log("Task created successfully and saved to file. Tasks reloaded:", this.tasks.length);
+          } else {
+            console.error("Failed to create task in file");
+          }
+        } catch (error) {
+          console.error("Error creating task:", error);
+        }
       },
       onDateChange: (date: string) => {
         console.log("Date changed to:", date);
@@ -123,10 +176,21 @@ export class KanbanCalendarView extends ItemView {
 
   private async openTaskSource(task: KanbanTask): Promise<void> {
     try {
-      const file = this.app.vault.getAbstractFileByPath(task.source) as TFile;
-      if (file) {
+      console.log("Attempting to open file:", task.source);
+      
+      const file = this.app.vault.getAbstractFileByPath(task.source);
+      console.log("Found file:", file);
+      
+      if (file instanceof TFile) {
+        console.log("Opening file in new leaf");
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.openFile(file);
+        
+        // Focus the leaf
+        this.app.workspace.setActiveLeaf(leaf);
+        console.log("File opened successfully");
+      } else {
+        console.error("File not found or not a TFile:", task.source);
       }
     } catch (error) {
       console.error('Error opening task source:', error);

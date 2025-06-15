@@ -6,6 +6,7 @@ interface CalendarComponentProps {
   onTaskClick?: (task: KanbanTask) => void;
   onOpenFile?: (task: KanbanTask) => void;
   onTaskMove?: (task: KanbanTask, newDate: string) => void;
+  onTaskCreate?: (taskData: { description: string; date: string; time?: string; tags: string[] }) => void;
   onDateChange?: (date: string) => void;
   initialView?: 'week' | 'month' | 'year';
   initialDate?: string;
@@ -16,6 +17,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   onTaskClick,
   onOpenFile,
   onTaskMove,
+  onTaskCreate,
   onDateChange,
   initialView = 'month',
   initialDate = new Date().toISOString()
@@ -24,6 +26,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const [currentDate, setCurrentDate] = useState(initialDate);
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [newTaskDate, setNewTaskDate] = useState<string>('');
 
   // Helper function to format date as YYYY-MM-DD
   const formatDate = (date: Date): string => {
@@ -31,6 +35,111 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  // New Task Modal Component
+  const NewTaskModal = () => {
+    const [description, setDescription] = useState('');
+    const [time, setTime] = useState('');
+    const [tags, setTags] = useState('');
+    
+    if (!showNewTaskModal) return null;
+    
+    const handleClose = () => {
+      setShowNewTaskModal(false);
+      setDescription('');
+      setTime('');
+      setTags('');
+    };
+    
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      if (!description.trim()) return;
+      
+      const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      
+      if (onTaskCreate) {
+        onTaskCreate({
+          description: description.trim(),
+          date: newTaskDate,
+          time: time.trim() || undefined,
+          tags: tagArray
+        });
+      }
+      
+      handleClose();
+    };
+    
+    return (
+      <div className="kanban-calendar-modal-overlay" onClick={handleClose}>
+        <div className="kanban-calendar-modal-content" onClick={e => e.stopPropagation()}>
+          <div className="kanban-calendar-modal-header">
+            <h3>Neue Aufgabe erstellen</h3>
+            <button className="kanban-calendar-modal-close" onClick={handleClose}>×</button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="kanban-calendar-modal-body">
+              <div className="kanban-calendar-form-group">
+                <label htmlFor="task-description"><strong>Beschreibung:</strong></label>
+                <input
+                  id="task-description"
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Aufgabenbeschreibung eingeben..."
+                  autoFocus
+                  required
+                />
+              </div>
+              
+              <div className="kanban-calendar-form-group">
+                <label htmlFor="task-date"><strong>Datum:</strong></label>
+                <input
+                  id="task-date"
+                  type="date"
+                  value={newTaskDate}
+                  onChange={(e) => setNewTaskDate(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="kanban-calendar-form-group">
+                <label htmlFor="task-time"><strong>Zeit (optional):</strong></label>
+                <input
+                  id="task-time"
+                  type="text"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  placeholder="z.B. 09:30 oder 09:00-11:30"
+                />
+                <small>Format: 09:30 (einzelne Zeit) oder 09:00-11:30 (Zeitblock)</small>
+              </div>
+              
+              <div className="kanban-calendar-form-group">
+                <label htmlFor="task-tags"><strong>Tags (optional):</strong></label>
+                <input
+                  id="task-tags"
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="z.B. Unterricht, Digitalisierung (durch Komma getrennt)"
+                />
+              </div>
+            </div>
+            
+            <div className="kanban-calendar-modal-footer">
+              <button type="button" onClick={handleClose} className="kanban-calendar-cancel-button">
+                Abbrechen
+              </button>
+              <button type="submit" className="kanban-calendar-open-file-button">
+                Aufgabe erstellen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
   // Task Modal Component
@@ -101,9 +210,14 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
               <button 
                 className="kanban-calendar-open-file-button"
                 onClick={() => {
+                  console.log("Button clicked, selectedTask:", selectedTask);
+                  console.log("onOpenFile function:", onOpenFile);
                   if (selectedTask && onOpenFile) {
+                    console.log("Calling onOpenFile with task:", selectedTask);
                     onOpenFile(selectedTask);
                     handleClose();
+                  } else {
+                    console.log("Missing selectedTask or onOpenFile function");
                   }
                 }}
               >
@@ -319,6 +433,16 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
                 <div className="kanban-calendar-day-number">{day.getDate()}</div>
               </div>
               <div className="kanban-calendar-day-tasks">
+                <button 
+                  className="kanban-calendar-add-task-button"
+                  onClick={() => {
+                    setNewTaskDate(formattedDate);
+                    setShowNewTaskModal(true);
+                  }}
+                  title="Neue Aufgabe hinzufügen"
+                >
+                  +
+                </button>
                 {dayTasks.length === 0 ? (
                   <div className="kanban-calendar-no-tasks">Keine Aufgaben</div>
                 ) : (
@@ -400,7 +524,20 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
               >
-                <div className="kanban-calendar-day-number">{date.getDate()}</div>
+                <div className="kanban-calendar-day-number">
+                  {date.getDate()}
+                  <button 
+                    className="kanban-calendar-add-task-button-small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewTaskDate(formattedDate);
+                      setShowNewTaskModal(true);
+                    }}
+                    title="Neue Aufgabe hinzufügen"
+                  >
+                    +
+                  </button>
+                </div>
                 <div className="kanban-calendar-day-cell-tasks">
                   {dayTasks.slice(0, 3).map(task => (
                     <TaskItem key={task.id} task={task} compact={true} />
@@ -477,6 +614,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       <CalendarHeader />
       {renderView()}
       <TaskModal />
+      <NewTaskModal />
     </div>
   );
 };

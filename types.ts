@@ -3,6 +3,8 @@ export interface KanbanTask {
   description: string;
   date: string;
   time?: string;
+  startTime?: string;
+  endTime?: string;
   tags: string[];
   completed: boolean;
   source: string;
