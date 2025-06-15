@@ -238,9 +238,10 @@
 
 .kanban-calendar-task.completed,
 .kanban-calendar-task-compact.completed {
-  opacity: 0.6;
+  opacity: 0.8;
   text-decoration: line-through;
   background-color: var(--color-green);
+  color: var(--text-on-accent);
 }
 
 .kanban-calendar-task-time {
@@ -366,6 +367,7 @@
 
 .kanban-calendar-task-status.completed {
   background-color: var(--color-green);
+  color: var(--text-on-accent);
   text-decoration: none;
 }
 
@@ -443,4 +445,29 @@
     width: 95%;
     margin: 10px;
   }
+}
+
+/* Modal Footer Button */
+.kanban-calendar-modal-footer {
+  padding: 15px;
+  border-top: 1px solid var(--background-modifier-border);
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--background-secondary);
+}
+
+.kanban-calendar-open-file-button {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.kanban-calendar-open-file-button:hover {
+  background-color: var(--interactive-accent-hover);
 }

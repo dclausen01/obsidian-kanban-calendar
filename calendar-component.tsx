@@ -4,6 +4,8 @@ import { KanbanTask } from './types';
 interface CalendarComponentProps {
   tasks: KanbanTask[];
   onTaskClick?: (task: KanbanTask) => void;
+  onOpenFile?: (task: KanbanTask) => void;
+  onTaskMove?: (task: KanbanTask, newDate: string) => void;
   onDateChange?: (date: string) => void;
   initialView?: 'week' | 'month' | 'year';
   initialDate?: string;
@@ -12,6 +14,8 @@ interface CalendarComponentProps {
 export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   tasks,
   onTaskClick,
+  onOpenFile,
+  onTaskMove,
   onDateChange,
   initialView = 'month',
   initialDate = new Date().toISOString()
@@ -56,7 +60,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
             <button className="kanban-calendar-modal-close" onClick={handleClose}>×</button>
           </div>
           <div className="kanban-calendar-modal-body">
-            <div className={`kanban-calendar-task-status ${selectedTask.completed ? 'completed' : ''}`}>
+            <div className={`kanban-calendar-task-status ${selectedTask.completed ? 'completed' : ''}`}
+        >
               {selectedTask.completed ? 'Completed' : 'In Progress'}
             </div>
             
@@ -91,6 +96,15 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
             <div className="kanban-calendar-task-source">
               <strong>Source:</strong> {selectedTask.source.split('/').pop()}
             </div>
+            
+            <div className="kanban-calendar-modal-footer">
+              <button 
+                className="kanban-calendar-open-file-button"
+                onClick={() => onOpenFile?.(selectedTask)}
+              >
+                Open in Kanban Board
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -99,6 +113,13 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
 
   // Task Item Component
   const TaskItem: React.FC<{ task: KanbanTask; compact?: boolean }> = ({ task, compact = false }) => {
+    const handleDragStart = (e: React.DragEvent) => {
+      e.dataTransfer.setData("text/plain", JSON.stringify(task));
+    };
+
+    const handleDragEnd = (e: React.DragEvent) => {
+      e.preventDefault();
+    };
     const handleTaskClick = () => {
       setSelectedTask(task);
       setShowTaskModal(true);
@@ -321,6 +342,21 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         <div className="kanban-calendar-month-grid">
           {daysToShow.map(({ date, isCurrentMonth }) => {
             const formattedDate = formatDate(date);
+            const handleDrop = (e: React.DragEvent) => {
+              e.preventDefault();
+              try {
+                const taskData = JSON.parse(e.dataTransfer.getData("text/plain"));
+                if (taskData && onTaskMove) {
+                  onTaskMove(taskData, formattedDate);
+                }
+              } catch (error) {
+                console.error("Error handling drop:", error);
+              }
+            };
+
+            const handleDragOver = (e: React.DragEvent) => {
+              e.preventDefault();
+            };
             const dayTasks = tasks.filter(task => task.date === formattedDate);
             const isToday = formatDate(new Date()) === formattedDate;
             

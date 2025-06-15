@@ -104,7 +104,7 @@ export class KanbanCalendarView extends ItemView {
     this.root.render(React.createElement(CalendarComponent, {
       tasks: this.tasks,
       onTaskClick: (task: KanbanTask) => {
-        this.openTaskSource(task);
+        // Only show modal, don't open file
       },
       onDateChange: (date: string) => {
         console.log("Date changed to:", date);
