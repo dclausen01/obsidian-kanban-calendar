@@ -179,16 +179,33 @@ export class KanbanCalendarView extends ItemView {
           );
           
           if (success) {
-            // Small delay to ensure file is written
+            console.log("Task created successfully, reloading tasks immediately...");
+            
+            // Create the new task object locally first for immediate display
+            const newTask: KanbanTask = {
+              id: `task-${taskData.description.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}-${taskData.date}`,
+              description: taskData.description,
+              date: taskData.date,
+              time: taskData.time,
+              startTime: taskData.time && !taskData.time.includes('-') ? taskData.time : undefined,
+              endTime: taskData.time && taskData.time.includes('-') ? taskData.time.split('-')[1] : undefined,
+              tags: taskData.tags,
+              completed: false,
+              source: targetFile
+            };
+            
+            // Add to local tasks array immediately
+            this.tasks.push(newTask);
+            
+            // Re-render immediately
+            this.renderComponent();
+            
+            // Then reload from file to ensure consistency
             setTimeout(async () => {
-              // Reload tasks to include the new one
               await this.loadTasks();
-              
-              // Force a complete re-render
               this.renderComponent();
-              
-              console.log("Task created successfully and saved to file. Tasks reloaded:", this.tasks.length);
-            }, 100);
+              console.log("Tasks reloaded from file. Total tasks:", this.tasks.length);
+            }, 50);
           } else {
             console.error("Failed to create task in file");
           }

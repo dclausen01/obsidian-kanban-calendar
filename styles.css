@@ -595,3 +595,15 @@
   align-items: center;
   justify-content: space-between;
 }
+
+/* Checkbox styling */
+.kanban-calendar-form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.kanban-calendar-form-group label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
