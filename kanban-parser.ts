@@ -133,6 +133,13 @@ export class KanbanParser {
 
         // Only add task if it has a date
         if (date) {
+          // Extract linked note from [[...]] pattern
+          let linkedNote: string | undefined;
+          const linkMatch = description.match(/\[\[([^\]]+)\]\]/);
+          if (linkMatch) {
+            linkedNote = linkMatch[1];
+          }
+
           // Clean up description
           description = description.replace(/@\{\d{4}-\d{2}-\d{2}\}/, '').trim();
           if (time) description = description.replace(/@@\d{2}:\d{2}/, '').trim();
@@ -179,7 +186,8 @@ export class KanbanParser {
             endTime,
             tags,
             completed,
-            source: filePath
+            source: filePath,
+            linkedNote
           });
         }
       }

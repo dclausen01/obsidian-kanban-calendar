@@ -1,6 +1,6 @@
 import { Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { KanbanCalendarView, VIEW_TYPE_KANBAN_CALENDAR } from './calendar-view';
-import { KanbanCalendarSettings, DEFAULT_SETTINGS } from './types';
+import { KanbanCalendarSettings, DEFAULT_SETTINGS, TaskColorConfig } from './types';
 
 export default class KanbanCalendarPlugin extends Plugin {
   settings!: KanbanCalendarSettings;
@@ -120,5 +120,79 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
           this.plugin.settings.dateFormat = value;
           await this.plugin.saveSettings();
         }));
+
+    // Task Colors Section
+    containerEl.createEl('h3', { text: 'Task Farben' });
+    containerEl.createEl('p', { 
+      text: 'Konfiguriere Farben für Tasks basierend auf Tags und Status.',
+      cls: 'setting-item-description'
+    });
+
+    // Add color configuration for each existing config
+    this.plugin.settings.taskColors.forEach((colorConfig, index) => {
+      this.createColorConfigSetting(containerEl, colorConfig, index);
+    });
+
+    // Add new color config button
+    new Setting(containerEl)
+      .setName('Neue Farbkonfiguration hinzufügen')
+      .setDesc('Füge eine neue Regel für Task-Farben hinzu')
+      .addButton(button => button
+        .setButtonText('Hinzufügen')
+        .onClick(async () => {
+          this.plugin.settings.taskColors.push({
+            status: 'in-progress',
+            color: '#2196f3'
+          });
+          await this.plugin.saveSettings();
+          this.display(); // Refresh the settings display
+        }));
+  }
+
+  private createColorConfigSetting(containerEl: HTMLElement, colorConfig: any, index: number): void {
+    const setting = new Setting(containerEl)
+      .setName(`Farbkonfiguration ${index + 1}`)
+      .setDesc('Tag (optional), Status und Farbe für Tasks');
+
+    // Tag input (optional)
+    setting.addText(text => text
+      .setPlaceholder('Tag (optional, z.B. #Unterricht)')
+      .setValue(colorConfig.tag || '')
+      .onChange(async (value) => {
+        if (value.trim()) {
+          this.plugin.settings.taskColors[index].tag = value.trim();
+        } else {
+          delete this.plugin.settings.taskColors[index].tag;
+        }
+        await this.plugin.saveSettings();
+      }));
+
+    // Status dropdown
+    setting.addDropdown(dropdown => dropdown
+      .addOption('in-progress', 'In Bearbeitung')
+      .addOption('completed', 'Erledigt')
+      .setValue(colorConfig.status)
+      .onChange(async (value) => {
+        this.plugin.settings.taskColors[index].status = value as 'completed' | 'in-progress';
+        await this.plugin.saveSettings();
+      }));
+
+    // Color input
+    setting.addColorPicker(colorPicker => colorPicker
+      .setValue(colorConfig.color)
+      .onChange(async (value) => {
+        this.plugin.settings.taskColors[index].color = value;
+        await this.plugin.saveSettings();
+      }));
+
+    // Delete button
+    setting.addButton(button => button
+      .setButtonText('Löschen')
+      .setWarning()
+      .onClick(async () => {
+        this.plugin.settings.taskColors.splice(index, 1);
+        await this.plugin.saveSettings();
+        this.display(); // Refresh the settings display
+      }));
   }
 }

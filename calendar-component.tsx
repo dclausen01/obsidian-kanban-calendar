@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { KanbanTask } from './types';
+import { KanbanTask, TaskColorConfig } from './types';
 
 interface CalendarComponentProps {
   tasks: KanbanTask[];
+  taskColors?: TaskColorConfig[];
   onTaskClick?: (task: KanbanTask) => void;
   onOpenFile?: (task: KanbanTask) => void;
+  onOpenLinkedNote?: (noteName: string) => void;
   onTaskMove?: (task: KanbanTask, newDate: string) => void;
   onTaskUpdate?: (task: KanbanTask, updates: { description?: string; date?: string; time?: string; completed?: boolean }) => void;
   onTaskCreate?: (taskData: { description: string; date: string; time?: string; tags: string[] }) => void;
@@ -15,8 +17,10 @@ interface CalendarComponentProps {
 
 export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   tasks,
+  taskColors = [],
   onTaskClick,
   onOpenFile,
+  onOpenLinkedNote,
   onTaskMove,
   onTaskUpdate,
   onTaskCreate,
@@ -38,6 +42,33 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  // Helper function to get task color based on configuration
+  const getTaskColor = (task: KanbanTask): string | undefined => {
+    const status = task.completed ? 'completed' : 'in-progress';
+    
+    // First, look for specific tag + status combinations
+    for (const config of taskColors) {
+      if (config.tag && config.status === status) {
+        // Check if task has this specific tag
+        const hasTag = task.tags.some(tag => 
+          tag === config.tag || tag === config.tag?.replace('#', '') || `#${tag}` === config.tag
+        );
+        if (hasTag) {
+          return config.color;
+        }
+      }
+    }
+    
+    // Then, look for general status-only configurations
+    for (const config of taskColors) {
+      if (!config.tag && config.status === status) {
+        return config.color;
+      }
+    }
+    
+    return undefined;
   };
 
   // New Task Modal Component
@@ -303,6 +334,20 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
                   >
                     Bearbeiten
                   </button>
+                  {selectedTask.linkedNote && onOpenLinkedNote && (
+                    <button 
+                      className="kanban-calendar-linked-note-button"
+                      onClick={() => {
+                        if (selectedTask.linkedNote && onOpenLinkedNote) {
+                          onOpenLinkedNote(selectedTask.linkedNote);
+                          handleClose();
+                        }
+                      }}
+                      title={`Notiz "${selectedTask.linkedNote}" öffnen`}
+                    >
+                      📝 Notiz öffnen
+                    </button>
+                  )}
                   <button 
                     className="kanban-calendar-open-file-button"
                     onClick={() => {
@@ -357,11 +402,16 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       setShowTaskModal(true);
       onTaskClick?.(task);
     };
+
+    // Get custom color for this task
+    const customColor = getTaskColor(task);
+    const taskStyle = customColor ? { backgroundColor: customColor } : {};
     
     if (compact) {
       return (
         <div 
           className={`kanban-calendar-task-compact ${task.completed ? 'completed' : ''}`}
+          style={taskStyle}
           title={`${task.time ? task.time + ' - ' : ''}${task.description}`}
           onClick={handleTaskClick}
           draggable={true}
@@ -380,6 +430,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     return (
       <div 
         className={`kanban-calendar-task ${task.completed ? 'completed' : ''}`}
+        style={taskStyle}
         onClick={handleTaskClick}
         draggable={true}
         onDragStart={handleDragStart}

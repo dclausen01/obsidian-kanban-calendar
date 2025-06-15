@@ -103,11 +103,15 @@ export class KanbanCalendarView extends ItemView {
 
     this.root.render(React.createElement(CalendarComponent, {
       tasks: this.tasks,
+      taskColors: settings.taskColors,
       onTaskClick: (task: KanbanTask) => {
         // Only show modal, don't open file
       },
       onOpenFile: (task: KanbanTask) => {
         this.openTaskSource(task);
+      },
+      onOpenLinkedNote: (noteName: string) => {
+        this.openLinkedNote(noteName);
       },
       onTaskMove: async (task: KanbanTask, newDate: string) => {
         console.log("Moving task", task.id, "from", task.date, "to", newDate);
@@ -241,6 +245,37 @@ export class KanbanCalendarView extends ItemView {
       }
     } catch (error) {
       console.error('Error opening task source:', error);
+    }
+  }
+
+  private async openLinkedNote(noteName: string): Promise<void> {
+    try {
+      console.log("Attempting to open linked note:", noteName);
+      
+      // Use Obsidian's built-in link resolution
+      const file = this.app.metadataCache.getFirstLinkpathDest(noteName, '');
+      
+      if (file instanceof TFile) {
+        console.log("Opening linked note in new leaf");
+        const leaf = this.app.workspace.getLeaf(false);
+        await leaf.openFile(file);
+        
+        // Focus the leaf
+        this.app.workspace.setActiveLeaf(leaf);
+        console.log("Linked note opened successfully");
+      } else {
+        console.error("Linked note not found:", noteName);
+        // Optionally create the note if it doesn't exist
+        const newFile = await this.app.vault.create(`${noteName}.md`, '');
+        if (newFile) {
+          const leaf = this.app.workspace.getLeaf(false);
+          await leaf.openFile(newFile);
+          this.app.workspace.setActiveLeaf(leaf);
+          console.log("Created and opened new linked note");
+        }
+      }
+    } catch (error) {
+      console.error('Error opening linked note:', error);
     }
   }
 
