@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
+import React from 'react';
 import { Root, createRoot } from 'react-dom/client';
 import { CalendarComponent } from './calendar-component';
 import { KanbanParser } from './kanban-parser';
@@ -88,31 +89,29 @@ export class KanbanCalendarView extends ItemView {
         settings.defaultKanbanBoard || undefined
       );
     } catch (error) {
+      console.log("Loaded tasks:", this.tasks.length, "tasks");
       console.error('Error loading Kanban tasks:', error);
       this.tasks = [];
     }
   }
 
   private renderComponent(): void {
+    console.log("Rendering calendar with", this.tasks.length, "tasks");
     if (!this.root) return;
 
     const settings = this.plugin.settings;
 
-    this.root.render(
-      CalendarComponent({
-        tasks: this.tasks,
-        onTaskClick: (task: KanbanTask) => {
-          // Open the source file when a task is clicked
-          this.openTaskSource(task);
-        },
-        onDateChange: (date: string) => {
-          // Could be used to save current date in settings
-          console.log('Date changed to:', date);
-        },
-        initialView: settings.calendarView,
-        initialDate: new Date().toISOString()
-      })
-    );
+    this.root.render(React.createElement(CalendarComponent, {
+      tasks: this.tasks,
+      onTaskClick: (task: KanbanTask) => {
+        this.openTaskSource(task);
+      },
+      onDateChange: (date: string) => {
+        console.log("Date changed to:", date);
+      },
+      initialView: settings.calendarView,
+      initialDate: new Date().toISOString()
+    }));
   }
 
   private async openTaskSource(task: KanbanTask): Promise<void> {
