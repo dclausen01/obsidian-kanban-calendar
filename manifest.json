@@ -1,0 +1,11 @@
+{
+	"id": "kanban-calendar",
+	"name": "Kanban Calendar",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "A calendar view that displays tasks from Kanban boards with dates and times",
+	"author": "Your Name",
+	"authorUrl": "https://github.com/yourusername/obsidian-kanban-calendar",
+	"fundingUrl": "https://buymeacoffee.com/yourusername",
+	"isDesktopOnly": false
+}

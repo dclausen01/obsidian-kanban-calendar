@@ -1,0 +1,446 @@
+/* Kanban Calendar Plugin Styles */
+
+.kanban-calendar-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.kanban-calendar-container {
+  font-family: var(--font-family);
+  color: var(--text-normal);
+  background-color: var(--background-primary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Styles */
+.kanban-calendar-header {
+  padding: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--background-secondary);
+}
+
+.kanban-calendar-navigation {
+  display: flex;
+  gap: 5px;
+}
+
+.kanban-calendar-navigation button,
+.kanban-calendar-view-selector button {
+  background-color: var(--interactive-normal);
+  color: var(--text-normal);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.kanban-calendar-navigation button:hover,
+.kanban-calendar-view-selector button:hover {
+  background-color: var(--interactive-hover);
+}
+
+.kanban-calendar-view-selector button.active {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.kanban-calendar-title {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.kanban-calendar-view-selector {
+  display: flex;
+  gap: 5px;
+}
+
+/* Week View Styles */
+.kanban-calendar-week-view {
+  display: flex;
+  flex: 1;
+  overflow: auto;
+}
+
+.kanban-calendar-day-column {
+  flex: 1;
+  border-right: 1px solid var(--background-modifier-border);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.kanban-calendar-day-column:last-child {
+  border-right: none;
+}
+
+.kanban-calendar-day-header {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-weight: bold;
+  background-color: var(--background-secondary);
+}
+
+.kanban-calendar-day-number {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.kanban-calendar-day-tasks {
+  padding: 8px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* Month View Styles */
+.kanban-calendar-month-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kanban-calendar-weekday-headers {
+  display: flex;
+  background-color: var(--background-secondary);
+}
+
+.kanban-calendar-weekday-header {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  font-weight: bold;
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+.kanban-calendar-weekday-header:last-child {
+  border-right: none;
+}
+
+.kanban-calendar-month-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 1px;
+  background-color: var(--background-modifier-border);
+  overflow: auto;
+}
+
+.kanban-calendar-day-cell {
+  background-color: var(--background-primary);
+  padding: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 80px;
+}
+
+.kanban-calendar-day-cell.other-month {
+  background-color: var(--background-secondary-alt);
+  color: var(--text-muted);
+}
+
+.kanban-calendar-day-cell.today {
+  border: 2px solid var(--interactive-accent);
+}
+
+.kanban-calendar-day-cell-tasks {
+  margin-top: 4px;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* Year View Styles */
+.kanban-calendar-year-view {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+  overflow: auto;
+}
+
+.kanban-calendar-month-cell {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-height: 100px;
+  background-color: var(--background-primary);
+}
+
+.kanban-calendar-month-cell:hover {
+  background-color: var(--background-secondary);
+}
+
+.kanban-calendar-month-header {
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.kanban-calendar-month-summary {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+/* Task Styles */
+.kanban-calendar-task {
+  margin: 3px 0;
+  padding: 6px;
+  background-color: var(--background-secondary);
+  border-radius: 3px;
+  font-size: 0.9em;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.kanban-calendar-task:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.kanban-calendar-task-compact {
+  margin: 2px 0;
+  padding: 3px 6px;
+  background-color: var(--background-secondary);
+  border-radius: 3px;
+  font-size: 0.8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.kanban-calendar-task-compact:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.kanban-calendar-task.completed,
+.kanban-calendar-task-compact.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+  background-color: var(--color-green);
+}
+
+.kanban-calendar-task-time {
+  font-weight: bold;
+  margin-right: 6px;
+  color: var(--text-accent);
+}
+
+.kanban-calendar-task-description {
+  margin: 3px 0;
+  line-height: 1.3;
+}
+
+.kanban-calendar-task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.kanban-calendar-tag {
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  color: white;
+  background-color: var(--text-accent);
+}
+
+.kanban-calendar-more-tasks {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2px;
+  font-style: italic;
+}
+
+.kanban-calendar-no-tasks {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  text-align: center;
+  padding: 10px;
+  font-style: italic;
+}
+
+.kanban-calendar-task-count {
+  color: var(--text-normal);
+  font-weight: 500;
+}
+
+/* Modal Styles */
+.kanban-calendar-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.kanban-calendar-modal-content {
+  background-color: var(--background-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.kanban-calendar-modal-header {
+  padding: 15px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--background-secondary);
+}
+
+.kanban-calendar-modal-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: var(--text-normal);
+}
+
+.kanban-calendar-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 5px;
+}
+
+.kanban-calendar-modal-close:hover {
+  color: var(--text-normal);
+}
+
+.kanban-calendar-modal-body {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.kanban-calendar-task-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  display: inline-block;
+  font-size: 0.9em;
+  font-weight: bold;
+  align-self: flex-start;
+}
+
+.kanban-calendar-task-status.completed {
+  background-color: var(--color-green);
+  text-decoration: none;
+}
+
+.kanban-calendar-modal-body .kanban-calendar-task-description {
+  font-size: 1.1em;
+  line-height: 1.5;
+  color: var(--text-normal);
+  word-break: break-word;
+  margin: 0;
+}
+
+.kanban-calendar-task-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.kanban-calendar-modal-body .kanban-calendar-task-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.kanban-calendar-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.kanban-calendar-modal-body .kanban-calendar-tag {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: white;
+}
+
+.kanban-calendar-task-source {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .kanban-calendar-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .kanban-calendar-week-view {
+    flex-direction: column;
+  }
+  
+  .kanban-calendar-day-column {
+    border-right: none;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+  
+  .kanban-calendar-year-view {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .kanban-calendar-year-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(12, 1fr);
+  }
+  
+  .kanban-calendar-modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+}
