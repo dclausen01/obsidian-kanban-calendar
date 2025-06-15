@@ -100,7 +100,12 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
             <div className="kanban-calendar-modal-footer">
               <button 
                 className="kanban-calendar-open-file-button"
-                onClick={() => onOpenFile?.(selectedTask)}
+                onClick={() => {
+                  if (selectedTask && onOpenFile) {
+                    onOpenFile(selectedTask);
+                    handleClose();
+                  }
+                }}
               >
                 Open in Kanban Board
               </button>
@@ -277,10 +282,27 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       <div className="kanban-calendar-week-view">
         {days.map(day => {
           const formattedDate = formatDate(day);
+          const handleDrop = (e: React.DragEvent) => {
+            e.preventDefault();
+            try {
+              const taskData = JSON.parse(e.dataTransfer.getData("text/plain"));
+              if (taskData && onTaskMove) {
+                onTaskMove(taskData, formattedDate);
+              }
+            } catch (error) {
+              console.error("Error handling drop:", error);
+            }
+          };
+
+          const handleDragOver = (e: React.DragEvent) => {
+            e.preventDefault();
+          };
           const dayTasks = tasks.filter(task => task.date === formattedDate);
           
           return (
-            <div key={formattedDate} className="kanban-calendar-day-column">
+            <div key={formattedDate} className="kanban-calendar-day-column"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}>
               <div className="kanban-calendar-day-header">
                 <div>{day.toLocaleDateString('de-DE', { weekday: 'short' })}</div>
                 <div className="kanban-calendar-day-number">{day.getDate()}</div>
@@ -364,6 +386,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
               <div 
                 key={formattedDate} 
                 className={`kanban-calendar-day-cell ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
               >
                 <div className="kanban-calendar-day-number">{date.getDate()}</div>
                 <div className="kanban-calendar-day-cell-tasks">
