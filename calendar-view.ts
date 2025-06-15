@@ -116,9 +116,10 @@ export class KanbanCalendarView extends ItemView {
 
   private async openTaskSource(task: KanbanTask): Promise<void> {
     try {
-      const file = this.app.vault.getAbstractFileByPath(task.source);
+      const file = this.app.vault.getAbstractFileByPath(task.source) as TFile;
       if (file) {
-        await this.app.workspace.openLinkText(task.source, '', true);
+        const leaf = this.app.workspace.getLeaf(false);
+        await leaf.openFile(file);
       }
     } catch (error) {
       console.error('Error opening task source:', error);
