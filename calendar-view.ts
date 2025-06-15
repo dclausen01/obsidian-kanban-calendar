@@ -135,6 +135,33 @@ export class KanbanCalendarView extends ItemView {
           console.error("Error moving task:", error);
         }
       },
+      onTaskUpdate: async (task: KanbanTask, updates: { description?: string; date?: string; time?: string; completed?: boolean }) => {
+        console.log("Updating task:", task.id, updates);
+        
+        try {
+          const success = await this.parser.updateTaskInFile(task, updates);
+          
+          if (success) {
+            // Update the task in the local tasks array
+            const taskIndex = this.tasks.findIndex(t => t.id === task.id);
+            if (taskIndex !== -1) {
+              if (updates.description) this.tasks[taskIndex].description = updates.description;
+              if (updates.date) this.tasks[taskIndex].date = updates.date;
+              if (updates.time !== undefined) this.tasks[taskIndex].time = updates.time;
+              if (updates.completed !== undefined) this.tasks[taskIndex].completed = updates.completed;
+              
+              // Re-render the component with updated tasks
+              this.renderComponent();
+              
+              console.log("Task updated successfully and saved to file");
+            }
+          } else {
+            console.error("Failed to update task in file");
+          }
+        } catch (error) {
+          console.error("Error updating task:", error);
+        }
+      },
       onTaskCreate: async (taskData: { description: string; date: string; time?: string; tags: string[] }) => {
         console.log("Creating new task:", taskData);
         
@@ -152,13 +179,16 @@ export class KanbanCalendarView extends ItemView {
           );
           
           if (success) {
-            // Reload tasks to include the new one
-            await this.loadTasks();
-            
-            // Force a complete re-render
-            this.renderComponent();
-            
-            console.log("Task created successfully and saved to file. Tasks reloaded:", this.tasks.length);
+            // Small delay to ensure file is written
+            setTimeout(async () => {
+              // Reload tasks to include the new one
+              await this.loadTasks();
+              
+              // Force a complete re-render
+              this.renderComponent();
+              
+              console.log("Task created successfully and saved to file. Tasks reloaded:", this.tasks.length);
+            }, 100);
           } else {
             console.error("Failed to create task in file");
           }

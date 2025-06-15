@@ -291,6 +291,124 @@ export class KanbanParser {
     }
   }
 
+  async updateTaskInFile(task: KanbanTask, updates: { description?: string; date?: string; time?: string; completed?: boolean }): Promise<boolean> {
+    try {
+      console.log(`Updating task "${task.description}" in file ${task.source}`);
+      
+      const file = this.vault.getAbstractFileByPath(task.source);
+      if (!(file instanceof TFile)) {
+        console.error('File not found:', task.source);
+        return false;
+      }
+
+      const content = await this.vault.read(file);
+      const lines = content.split('\n');
+      
+      // Find the task line by matching the description
+      let taskLineIndex = -1;
+      let foundTask = false;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check if this line contains a task with our description
+        if ((line.includes('- [ ]') || line.includes('- [x]')) && 
+            line.includes(task.description)) {
+          
+          // Additional verification: check if this line or nearby lines contain the old date
+          const checkLines = [line];
+          // Check up to 3 lines ahead for date information
+          for (let j = 1; j <= 3 && i + j < lines.length; j++) {
+            const nextLine = lines[i + j];
+            // Stop if we hit another task
+            if (nextLine.includes('- [ ]') || nextLine.includes('- [x]')) {
+              break;
+            }
+            checkLines.push(nextLine);
+          }
+          
+          // Check if any of these lines contain the old date
+          const combinedText = checkLines.join(' ');
+          if (combinedText.includes(`@{${task.date}}`)) {
+            taskLineIndex = i;
+            foundTask = true;
+            break;
+          }
+        }
+      }
+      
+      if (!foundTask) {
+        console.error('Task not found in file:', task.description);
+        return false;
+      }
+      
+      // Update the task line and subsequent lines
+      let updated = false;
+      
+      // Update completion status
+      if (updates.completed !== undefined) {
+        const newStatus = updates.completed ? '- [x]' : '- [ ]';
+        const oldStatus = task.completed ? '- [x]' : '- [ ]';
+        lines[taskLineIndex] = lines[taskLineIndex].replace(oldStatus, newStatus);
+        updated = true;
+      }
+      
+      // Update description
+      if (updates.description && updates.description !== task.description) {
+        lines[taskLineIndex] = lines[taskLineIndex].replace(task.description, updates.description);
+        updated = true;
+      }
+      
+      // Update date and time in subsequent lines
+      for (let i = taskLineIndex; i < Math.min(taskLineIndex + 4, lines.length); i++) {
+        // Update date
+        if (updates.date && updates.date !== task.date) {
+          const oldDatePattern = new RegExp(`@\\{${task.date.replace(/[-]/g, '\\-')}\\}`, 'g');
+          if (oldDatePattern.test(lines[i])) {
+            lines[i] = lines[i].replace(oldDatePattern, `@{${updates.date}}`);
+            updated = true;
+          }
+        }
+        
+        // Update time
+        if (updates.time !== undefined) {
+          if (task.time) {
+            // Replace existing time
+            const oldTimePattern = new RegExp(`@@\\{${task.time.replace(/[-:]/g, '\\$&')}\\}`, 'g');
+            if (updates.time) {
+              lines[i] = lines[i].replace(oldTimePattern, `@@{${updates.time}}`);
+            } else {
+              lines[i] = lines[i].replace(oldTimePattern, '');
+            }
+            updated = true;
+          } else if (updates.time) {
+            // Add new time
+            if (lines[i].includes(`@{${task.date}}`)) {
+              lines[i] = lines[i] + ` @@{${updates.time}}`;
+              updated = true;
+            }
+          }
+        }
+      }
+      
+      if (!updated) {
+        console.error('No updates were applied');
+        return false;
+      }
+      
+      // Write the updated content back to the file
+      const updatedContent = lines.join('\n');
+      await this.vault.modify(file, updatedContent);
+      
+      console.log('Task updated successfully in file');
+      return true;
+      
+    } catch (error) {
+      console.error('Error updating task in file:', error);
+      return false;
+    }
+  }
+
   async addNewTaskToFile(filePath: string, taskDescription: string, date: string, time?: string, tags: string[] = []): Promise<boolean> {
     try {
       console.log(`Adding new task "${taskDescription}" to file ${filePath}`);

@@ -6,6 +6,7 @@ interface CalendarComponentProps {
   onTaskClick?: (task: KanbanTask) => void;
   onOpenFile?: (task: KanbanTask) => void;
   onTaskMove?: (task: KanbanTask, newDate: string) => void;
+  onTaskUpdate?: (task: KanbanTask, updates: { description?: string; date?: string; time?: string; completed?: boolean }) => void;
   onTaskCreate?: (taskData: { description: string; date: string; time?: string; tags: string[] }) => void;
   onDateChange?: (date: string) => void;
   initialView?: 'week' | 'month' | 'year';
@@ -17,6 +18,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   onTaskClick,
   onOpenFile,
   onTaskMove,
+  onTaskUpdate,
   onTaskCreate,
   onDateChange,
   initialView = 'month',
@@ -28,6 +30,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [newTaskDate, setNewTaskDate] = useState<string>('');
+  const [isEditingTask, setIsEditingTask] = useState(false);
 
   // Helper function to format date as YYYY-MM-DD
   const formatDate = (date: Date): string => {
@@ -144,11 +147,52 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
 
   // Task Modal Component
   const TaskModal = () => {
+    const [editDescription, setEditDescription] = useState('');
+    const [editDate, setEditDate] = useState('');
+    const [editTime, setEditTime] = useState('');
+    const [editCompleted, setEditCompleted] = useState(false);
+    
     if (!selectedTask || !showTaskModal) return null;
+    
+    // Initialize edit values when task is selected
+    React.useEffect(() => {
+      if (selectedTask) {
+        setEditDescription(selectedTask.description);
+        setEditDate(selectedTask.date);
+        setEditTime(selectedTask.time || '');
+        setEditCompleted(selectedTask.completed);
+      }
+    }, [selectedTask]);
     
     const handleClose = () => {
       setShowTaskModal(false);
       setSelectedTask(null);
+      setIsEditingTask(false);
+    };
+    
+    const handleSaveChanges = () => {
+      if (!selectedTask || !onTaskUpdate) return;
+      
+      const updates: { description?: string; date?: string; time?: string; completed?: boolean } = {};
+      
+      if (editDescription !== selectedTask.description) {
+        updates.description = editDescription;
+      }
+      if (editDate !== selectedTask.date) {
+        updates.date = editDate;
+      }
+      if (editTime !== (selectedTask.time || '')) {
+        updates.time = editTime || undefined;
+      }
+      if (editCompleted !== selectedTask.completed) {
+        updates.completed = editCompleted;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        onTaskUpdate(selectedTask, updates);
+      }
+      
+      setIsEditingTask(false);
     };
     
     // Generate tag colors based on tag name
@@ -169,60 +213,124 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
             <button className="kanban-calendar-modal-close" onClick={handleClose}>×</button>
           </div>
           <div className="kanban-calendar-modal-body">
-            <div className={`kanban-calendar-task-status ${selectedTask.completed ? 'completed' : ''}`}
-        >
-              {selectedTask.completed ? 'Completed' : 'In Progress'}
-            </div>
-            
-            <div className="kanban-calendar-task-description">
-              {selectedTask.description}
-            </div>
-            
-            <div className="kanban-calendar-task-meta">
-              <div><strong>Date:</strong> {selectedTask.date}</div>
-              {selectedTask.time && (
-                <div><strong>Time:</strong> {selectedTask.time}</div>
-              )}
-            </div>
-            
-            {selectedTask.tags.length > 0 && (
-              <div className="kanban-calendar-task-tags">
-                <strong>Tags:</strong>
-                <div className="kanban-calendar-tags-container">
-                  {selectedTask.tags.map(tag => (
-                    <span 
-                      key={tag} 
-                      className="kanban-calendar-tag"
-                      style={{ backgroundColor: getTagColor(tag) }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
+            {!isEditingTask ? (
+              <>
+                <div className={`kanban-calendar-task-status ${selectedTask.completed ? 'completed' : ''}`}>
+                  {selectedTask.completed ? 'Erledigt' : 'In Bearbeitung'}
                 </div>
-              </div>
+                
+                <div className="kanban-calendar-task-description">
+                  {selectedTask.description}
+                </div>
+                
+                <div className="kanban-calendar-task-meta">
+                  <div><strong>Datum:</strong> {selectedTask.date}</div>
+                  {selectedTask.time && (
+                    <div><strong>Zeit:</strong> {selectedTask.time}</div>
+                  )}
+                </div>
+                
+                {selectedTask.tags.length > 0 && (
+                  <div className="kanban-calendar-task-tags">
+                    <strong>Tags:</strong>
+                    <div className="kanban-calendar-tags-container">
+                      {selectedTask.tags.map(tag => (
+                        <span 
+                          key={tag} 
+                          className="kanban-calendar-tag"
+                          style={{ backgroundColor: getTagColor(tag) }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="kanban-calendar-task-source">
+                  <strong>Quelle:</strong> {selectedTask.source.split('/').pop()}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="kanban-calendar-form-group">
+                  <label><strong>Beschreibung:</strong></label>
+                  <input
+                    type="text"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                  />
+                </div>
+                
+                <div className="kanban-calendar-form-group">
+                  <label><strong>Datum:</strong></label>
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                  />
+                </div>
+                
+                <div className="kanban-calendar-form-group">
+                  <label><strong>Zeit:</strong></label>
+                  <input
+                    type="text"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    placeholder="z.B. 09:30 oder 09:00-11:30"
+                  />
+                </div>
+                
+                <div className="kanban-calendar-form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={editCompleted}
+                      onChange={(e) => setEditCompleted(e.target.checked)}
+                    />
+                    <strong> Erledigt</strong>
+                  </label>
+                </div>
+              </>
             )}
             
-            <div className="kanban-calendar-task-source">
-              <strong>Source:</strong> {selectedTask.source.split('/').pop()}
-            </div>
-            
             <div className="kanban-calendar-modal-footer">
-              <button 
-                className="kanban-calendar-open-file-button"
-                onClick={() => {
-                  console.log("Button clicked, selectedTask:", selectedTask);
-                  console.log("onOpenFile function:", onOpenFile);
-                  if (selectedTask && onOpenFile) {
-                    console.log("Calling onOpenFile with task:", selectedTask);
-                    onOpenFile(selectedTask);
-                    handleClose();
-                  } else {
-                    console.log("Missing selectedTask or onOpenFile function");
-                  }
-                }}
-              >
-                Open in Kanban Board
-              </button>
+              {!isEditingTask ? (
+                <>
+                  <button 
+                    className="kanban-calendar-cancel-button"
+                    onClick={() => setIsEditingTask(true)}
+                  >
+                    Bearbeiten
+                  </button>
+                  <button 
+                    className="kanban-calendar-open-file-button"
+                    onClick={() => {
+                      if (selectedTask && onOpenFile) {
+                        onOpenFile(selectedTask);
+                        handleClose();
+                      }
+                    }}
+                  >
+                    In Kanban Board öffnen
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className="kanban-calendar-cancel-button"
+                    onClick={() => setIsEditingTask(false)}
+                  >
+                    Abbrechen
+                  </button>
+                  <button 
+                    className="kanban-calendar-open-file-button"
+                    onClick={handleSaveChanges}
+                  >
+                    Änderungen speichern
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
