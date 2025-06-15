@@ -78,10 +78,15 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.2s;
 }
 
 .kanban-calendar-day-column:last-child {
   border-right: none;
+}
+
+.kanban-calendar-day-column:hover {
+  background-color: var(--background-modifier-hover);
 }
 
 .kanban-calendar-day-header {
@@ -145,6 +150,11 @@
   display: flex;
   flex-direction: column;
   min-height: 80px;
+  transition: background-color 0.2s;
+}
+
+.kanban-calendar-day-cell:hover {
+  background-color: var(--background-modifier-hover);
 }
 
 .kanban-calendar-day-cell.other-month {
@@ -211,12 +221,17 @@
   border-radius: 3px;
   font-size: 0.9em;
   overflow: hidden;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  cursor: grab;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
 .kanban-calendar-task:hover {
   background-color: var(--background-modifier-hover);
+}
+
+.kanban-calendar-task:active {
+  cursor: grabbing;
+  transform: scale(1.02);
 }
 
 .kanban-calendar-task-compact {
@@ -228,12 +243,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  cursor: grab;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
 .kanban-calendar-task-compact:hover {
   background-color: var(--background-modifier-hover);
+}
+
+.kanban-calendar-task-compact:active {
+  cursor: grabbing;
+  transform: scale(1.02);
 }
 
 .kanban-calendar-task.completed,

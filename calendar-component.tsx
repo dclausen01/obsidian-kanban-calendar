@@ -120,12 +120,17 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const TaskItem: React.FC<{ task: KanbanTask; compact?: boolean }> = ({ task, compact = false }) => {
     const handleDragStart = (e: React.DragEvent) => {
       e.dataTransfer.setData("text/plain", JSON.stringify(task));
+      e.dataTransfer.effectAllowed = "move";
     };
 
     const handleDragEnd = (e: React.DragEvent) => {
       e.preventDefault();
     };
-    const handleTaskClick = () => {
+    
+    const handleTaskClick = (e: React.MouseEvent) => {
+      // Prevent click when dragging
+      if (e.defaultPrevented) return;
+      
       setSelectedTask(task);
       setShowTaskModal(true);
       onTaskClick?.(task);
@@ -137,6 +142,9 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
           className={`kanban-calendar-task-compact ${task.completed ? 'completed' : ''}`}
           title={`${task.time ? task.time + ' - ' : ''}${task.description}`}
           onClick={handleTaskClick}
+          draggable={true}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
           {task.time && <span className="kanban-calendar-task-time">{task.time}</span>}
           <span>{task.description.length > 20 
@@ -151,6 +159,9 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       <div 
         className={`kanban-calendar-task ${task.completed ? 'completed' : ''}`}
         onClick={handleTaskClick}
+        draggable={true}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
         {task.time && <div className="kanban-calendar-task-time">{task.time}</div>}
         <div className="kanban-calendar-task-description">{task.description}</div>

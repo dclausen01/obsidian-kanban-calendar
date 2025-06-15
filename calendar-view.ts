@@ -106,6 +106,13 @@ export class KanbanCalendarView extends ItemView {
       onTaskClick: (task: KanbanTask) => {
         // Only show modal, don't open file
       },
+      onOpenFile: (task: KanbanTask) => {
+        this.openTaskSource(task);
+      },
+      onTaskMove: async (task: KanbanTask, newDate: string) => {
+        // TODO: Implement task moving functionality
+        console.log("Moving task", task.id, "to", newDate);
+      },
       onDateChange: (date: string) => {
         console.log("Date changed to:", date);
       },
