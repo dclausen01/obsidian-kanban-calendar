@@ -15,14 +15,14 @@ export default class KanbanCalendarPlugin extends Plugin {
     );
 
     // Add ribbon icon
-    this.addRibbonIcon('calendar-days', 'Open Kanban Calendar', () => {
+    this.addRibbonIcon('calendar-days', 'Kanban-Kalender öffnen', () => {
       this.activateView();
     });
 
     // Add command
     this.addCommand({
       id: 'open-kanban-calendar',
-      name: 'Open Kanban Calendar',
+      name: 'Kanban-Kalender öffnen',
       callback: () => {
         this.activateView();
       }
@@ -50,7 +50,14 @@ export default class KanbanCalendarPlugin extends Plugin {
     let leaf = workspace.getLeavesOfType(VIEW_TYPE_KANBAN_CALENDAR)[0];
 
     if (!leaf) {
-      leaf = workspace.getRightLeaf(false)!;
+      if (this.settings.openLocation === 'tab') {
+        // Open in new tab
+        leaf = workspace.getLeaf('tab');
+      } else {
+        // Open in sidebar (default)
+        leaf = workspace.getRightLeaf(false)!;
+      }
+      
       await leaf.setViewState({
         type: VIEW_TYPE_KANBAN_CALENDAR,
         active: true,
@@ -74,13 +81,13 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Kanban Calendar Settings' });
+    containerEl.createEl('h2', { text: 'Kanban-Kalender Einstellungen' });
 
     new Setting(containerEl)
-      .setName('Default Kanban Board')
-      .setDesc('Path to the default Kanban board file (leave empty to scan all files)')
+      .setName('Standard Kanban-Board')
+      .setDesc('Pfad zur Standard Kanban-Board Datei (leer lassen um alle Dateien zu scannen)')
       .addText(text => text
-        .setPlaceholder('path/to/kanban-board.md')
+        .setPlaceholder('pfad/zum/kanban-board.md')
         .setValue(this.plugin.settings.defaultKanbanBoard)
         .onChange(async (value) => {
           this.plugin.settings.defaultKanbanBoard = value;
@@ -88,12 +95,12 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Default Calendar View')
-      .setDesc('Choose the default view when opening the calendar')
+      .setName('Standard Kalender-Ansicht')
+      .setDesc('Wähle die Standard-Ansicht beim Öffnen des Kalenders')
       .addDropdown(dropdown => dropdown
-        .addOption('week', 'Week')
-        .addOption('month', 'Month')
-        .addOption('year', 'Year')
+        .addOption('week', 'Woche')
+        .addOption('month', 'Monat')
+        .addOption('year', 'Jahr')
         .setValue(this.plugin.settings.calendarView)
         .onChange(async (value) => {
           this.plugin.settings.calendarView = value as 'week' | 'month' | 'year';
@@ -101,8 +108,8 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Show Completed Tasks')
-      .setDesc('Whether to show completed tasks in the calendar')
+      .setName('Erledigte Aufgaben anzeigen')
+      .setDesc('Ob erledigte Aufgaben im Kalender angezeigt werden sollen')
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.showCompletedTasks)
         .onChange(async (value) => {
@@ -111,8 +118,8 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Date Format')
-      .setDesc('Date format used in Kanban boards (default: YYYY-MM-DD)')
+      .setName('Datumsformat')
+      .setDesc('Datumsformat für Kanban-Boards (Standard: YYYY-MM-DD)')
       .addText(text => text
         .setPlaceholder('YYYY-MM-DD')
         .setValue(this.plugin.settings.dateFormat)
@@ -120,6 +127,38 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
           this.plugin.settings.dateFormat = value;
           await this.plugin.saveSettings();
         }));
+
+    new Setting(containerEl)
+      .setName('Öffnungsort')
+      .setDesc('Wähle wo der Kanban-Kalender geöffnet werden soll')
+      .addDropdown(dropdown => dropdown
+        .addOption('sidebar', 'Seitenleiste (rechts)')
+        .addOption('tab', 'Neuer Tab')
+        .setValue(this.plugin.settings.openLocation)
+        .onChange(async (value) => {
+          this.plugin.settings.openLocation = value as 'sidebar' | 'tab';
+          await this.plugin.saveSettings();
+        }));
+
+    // List Filter Section
+    containerEl.createEl('h3', { text: 'Listen-Filter' });
+    containerEl.createEl('p', { 
+      text: 'Wähle aus, welche Kanban-Listen im Kalender angezeigt werden sollen.',
+      cls: 'setting-item-description'
+    });
+
+    // Load available lists button and display
+    new Setting(containerEl)
+      .setName('Verfügbare Listen laden')
+      .setDesc('Lade alle verfügbaren Listen aus den Kanban-Dateien')
+      .addButton(button => button
+        .setButtonText('Listen laden')
+        .onClick(async () => {
+          await this.loadAndDisplayAvailableLists(containerEl);
+        }));
+
+    // Display current filter settings
+    this.displayListFilterSettings(containerEl);
 
     // Task Colors Section
     containerEl.createEl('h3', { text: 'Task Farben' });
@@ -147,6 +186,114 @@ class KanbanCalendarSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
           this.display(); // Refresh the settings display
         }));
+  }
+
+  private async loadAndDisplayAvailableLists(containerEl: HTMLElement): Promise<void> {
+    try {
+      // Import KanbanParser
+      const { KanbanParser } = await import('./kanban-parser');
+      const parser = new KanbanParser(this.app.vault);
+      
+      const availableLists = await parser.getAllAvailableLists(
+        this.plugin.settings.defaultKanbanBoard || undefined
+      );
+      
+      // Find or create the lists container
+      let listsContainer = containerEl.querySelector('.available-lists-container') as HTMLElement;
+      if (!listsContainer) {
+        listsContainer = containerEl.createDiv('available-lists-container');
+      } else {
+        listsContainer.empty();
+      }
+      
+      if (availableLists.length === 0) {
+        listsContainer.createEl('p', { text: 'Keine Listen gefunden. Stelle sicher, dass deine Kanban-Dateien ## Überschriften haben.' });
+        return;
+      }
+      
+      listsContainer.createEl('h4', { text: 'Verfügbare Listen:' });
+      
+      availableLists.forEach(listName => {
+        const listSetting = new Setting(listsContainer)
+          .setName(listName)
+          .setDesc('Wähle aus, ob diese Liste im Kalender angezeigt werden soll');
+        
+        // Include checkbox
+        listSetting.addToggle(toggle => {
+          const isIncluded = this.plugin.settings.includedLists.includes(listName);
+          const isExcluded = this.plugin.settings.excludedLists.includes(listName);
+          
+          // If neither included nor excluded, default to included
+          const shouldBeChecked = isIncluded || (!isIncluded && !isExcluded);
+          
+          toggle
+            .setValue(shouldBeChecked)
+            .onChange(async (value) => {
+              if (value) {
+                // Include this list
+                if (!this.plugin.settings.includedLists.includes(listName)) {
+                  this.plugin.settings.includedLists.push(listName);
+                }
+                // Remove from excluded if it was there
+                const excludedIndex = this.plugin.settings.excludedLists.indexOf(listName);
+                if (excludedIndex > -1) {
+                  this.plugin.settings.excludedLists.splice(excludedIndex, 1);
+                }
+              } else {
+                // Exclude this list
+                if (!this.plugin.settings.excludedLists.includes(listName)) {
+                  this.plugin.settings.excludedLists.push(listName);
+                }
+                // Remove from included if it was there
+                const includedIndex = this.plugin.settings.includedLists.indexOf(listName);
+                if (includedIndex > -1) {
+                  this.plugin.settings.includedLists.splice(includedIndex, 1);
+                }
+              }
+              await this.plugin.saveSettings();
+            });
+        });
+      });
+      
+    } catch (error) {
+      console.error('Error loading available lists:', error);
+      const errorContainer = containerEl.createDiv();
+      errorContainer.createEl('p', { text: 'Fehler beim Laden der Listen. Siehe Konsole für Details.' });
+    }
+  }
+
+  private displayListFilterSettings(containerEl: HTMLElement): void {
+    const { includedLists, excludedLists } = this.plugin.settings;
+    
+    if (includedLists.length > 0 || excludedLists.length > 0) {
+      const filterContainer = containerEl.createDiv('list-filter-summary');
+      filterContainer.createEl('h4', { text: 'Aktuelle Filter-Einstellungen:' });
+      
+      if (includedLists.length > 0) {
+        const includedEl = filterContainer.createEl('p');
+        includedEl.createEl('strong', { text: 'Eingeschlossene Listen: ' });
+        includedEl.createSpan({ text: includedLists.join(', ') });
+      }
+      
+      if (excludedLists.length > 0) {
+        const excludedEl = filterContainer.createEl('p');
+        excludedEl.createEl('strong', { text: 'Ausgeschlossene Listen: ' });
+        excludedEl.createSpan({ text: excludedLists.join(', ') });
+      }
+      
+      // Clear filters button
+      new Setting(filterContainer)
+        .setName('Filter zurücksetzen')
+        .setDesc('Alle Listen-Filter entfernen')
+        .addButton(button => button
+          .setButtonText('Zurücksetzen')
+          .onClick(async () => {
+            this.plugin.settings.includedLists = [];
+            this.plugin.settings.excludedLists = [];
+            await this.plugin.saveSettings();
+            this.display(); // Refresh the settings display
+          }));
+    }
   }
 
   private createColorConfigSetting(containerEl: HTMLElement, colorConfig: any, index: number): void {

@@ -9,6 +9,7 @@ export interface KanbanTask {
   completed: boolean;
   source: string;
   linkedNote?: string; // Extracted from [[...]] pattern
+  listName?: string; // Name of the Kanban list/column this task belongs to
 }
 
 export interface TaskColorConfig {
@@ -23,6 +24,9 @@ export interface KanbanCalendarSettings {
   showCompletedTasks: boolean;
   dateFormat: string;
   taskColors: TaskColorConfig[];
+  openLocation: 'sidebar' | 'tab';
+  includedLists: string[]; // Lists to include in calendar view
+  excludedLists: string[]; // Lists to exclude from calendar view
 }
 
 export const DEFAULT_SETTINGS: KanbanCalendarSettings = {
@@ -33,5 +37,8 @@ export const DEFAULT_SETTINGS: KanbanCalendarSettings = {
   taskColors: [
     { status: 'completed', color: '#4caf50' },
     { status: 'in-progress', color: '#2196f3' }
-  ]
+  ],
+  openLocation: 'sidebar',
+  includedLists: [], // Empty means include all lists
+  excludedLists: [] // Lists to exclude from calendar view
 };

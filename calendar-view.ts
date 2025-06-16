@@ -25,7 +25,7 @@ export class KanbanCalendarView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Kanban Calendar';
+    return 'Kanban-Kalender';
   }
 
   getIcon(): string {
@@ -86,7 +86,9 @@ export class KanbanCalendarView extends ItemView {
     try {
       const settings = this.plugin.settings;
       this.tasks = await this.parser.getAllKanbanTasks(
-        settings.defaultKanbanBoard || undefined
+        settings.defaultKanbanBoard || undefined,
+        settings.includedLists.length > 0 ? settings.includedLists : undefined,
+        settings.excludedLists.length > 0 ? settings.excludedLists : undefined
       );
     } catch (error) {
       console.log("Loaded tasks:", this.tasks.length, "tasks");

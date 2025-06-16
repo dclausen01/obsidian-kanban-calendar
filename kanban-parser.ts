@@ -45,15 +45,32 @@ export class KanbanParser {
       return line.startsWith('\t') || line.startsWith('    ');
     };
 
+    // Helper function to check if a line is a Kanban list header
+    const isListHeader = (line: string): boolean => {
+      return line.trim().startsWith('## ');
+    };
+
+    // Helper function to extract list name from header
+    const extractListName = (line: string): string => {
+      return line.trim().replace(/^## /, '').trim();
+    };
+
     // Track parent task information for subtasks
     let currentParentDate: string | null = null;
     let currentParentTags: string[] = [];
+    let currentListName: string | null = null;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
       // Skip empty lines
       if (!line.trim()) continue;
+
+      // Check if line is a Kanban list header
+      if (isListHeader(line)) {
+        currentListName = extractListName(line);
+        continue;
+      }
 
       // Check if line contains a task
       if (isTaskLine(line)) {
@@ -187,7 +204,8 @@ export class KanbanParser {
             tags,
             completed,
             source: filePath,
-            linkedNote
+            linkedNote,
+            listName: currentListName || undefined
           });
         }
       }
@@ -196,7 +214,7 @@ export class KanbanParser {
     return tasks;
   }
 
-  async getAllKanbanTasks(kanbanFilePath?: string): Promise<KanbanTask[]> {
+  async getAllKanbanTasks(kanbanFilePath?: string, includedLists?: string[], excludedLists?: string[]): Promise<KanbanTask[]> {
     const allTasks: KanbanTask[] = [];
 
     if (kanbanFilePath) {
@@ -215,7 +233,75 @@ export class KanbanParser {
       }
     }
 
-    return allTasks;
+    // Apply list filtering
+    return this.filterTasksByLists(allTasks, includedLists, excludedLists);
+  }
+
+  private filterTasksByLists(tasks: KanbanTask[], includedLists?: string[], excludedLists?: string[]): KanbanTask[] {
+    if (!includedLists && !excludedLists) {
+      return tasks; // No filtering
+    }
+
+    return tasks.filter(task => {
+      // If no list name is available, include the task by default
+      if (!task.listName) {
+        return true;
+      }
+
+      // If excludedLists is specified and task's list is in it, exclude the task
+      if (excludedLists && excludedLists.length > 0) {
+        if (excludedLists.includes(task.listName)) {
+          return false;
+        }
+      }
+
+      // If includedLists is specified and not empty, only include tasks from those lists
+      if (includedLists && includedLists.length > 0) {
+        return includedLists.includes(task.listName);
+      }
+
+      // If only excludedLists is specified, include all others
+      return true;
+    });
+  }
+
+  async getAllAvailableLists(kanbanFilePath?: string): Promise<string[]> {
+    const allLists = new Set<string>();
+
+    if (kanbanFilePath) {
+      // Read specific file
+      const file = this.vault.getAbstractFileByPath(kanbanFilePath);
+      if (file instanceof TFile) {
+        const lists = await this.extractListsFromFile(file);
+        lists.forEach(list => allLists.add(list));
+      }
+    } else {
+      // Read all markdown files
+      const markdownFiles = this.vault.getMarkdownFiles();
+      for (const file of markdownFiles) {
+        const lists = await this.extractListsFromFile(file);
+        lists.forEach(list => allLists.add(list));
+      }
+    }
+
+    return Array.from(allLists).sort();
+  }
+
+  private async extractListsFromFile(file: TFile): Promise<string[]> {
+    const content = await this.vault.read(file);
+    const lines = content.split('\n');
+    const lists: string[] = [];
+
+    for (const line of lines) {
+      if (line.trim().startsWith('## ')) {
+        const listName = line.trim().replace(/^## /, '').trim();
+        if (listName && !lists.includes(listName)) {
+          lists.push(listName);
+        }
+      }
+    }
+
+    return lists;
   }
 
   async updateTaskDateInFile(task: KanbanTask, newDate: string): Promise<boolean> {

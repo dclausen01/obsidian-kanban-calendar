@@ -248,7 +248,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       <div className="kanban-calendar-modal-overlay" onClick={handleClose}>
         <div className="kanban-calendar-modal-content" onClick={e => e.stopPropagation()}>
           <div className="kanban-calendar-modal-header">
-            <h3>Task Details</h3>
+            <h3>Aufgaben-Details</h3>
             <button className="kanban-calendar-modal-close" onClick={handleClose}>×</button>
           </div>
           <div className="kanban-calendar-modal-body">
@@ -289,6 +289,12 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
                 <div className="kanban-calendar-task-source">
                   <strong>Quelle:</strong> {selectedTask.source.split('/').pop()}
                 </div>
+                
+                {selectedTask.listName && (
+                  <div className="kanban-calendar-task-list">
+                    <strong>Kanban-Liste:</strong> {selectedTask.listName}
+                  </div>
+                )}
               </>
             ) : (
               <>
