@@ -52,9 +52,17 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     for (const config of taskColors) {
       if (config.tag && config.status === status) {
         // Check if task has this specific tag
-        const hasTag = task.tags.some(tag => 
-          tag === config.tag || tag === config.tag?.replace('#', '') || `#${tag}` === config.tag
-        );
+        const hasTag = task.tags.some(tag => {
+          // Normalize both tag and config.tag for comparison
+          const normalizedTag = tag.startsWith('#') ? tag : `#${tag}`;
+          const normalizedConfigTag = config.tag?.startsWith('#') ? config.tag : `#${config.tag}`;
+          
+          return normalizedTag === normalizedConfigTag || 
+                 tag === config.tag || 
+                 tag === config.tag?.replace('#', '') || 
+                 `#${tag}` === config.tag;
+        });
+        
         if (hasTag) {
           return config.color;
         }
@@ -405,7 +413,10 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
 
     // Get custom color for this task
     const customColor = getTaskColor(task);
-    const taskStyle = customColor ? { backgroundColor: customColor } : {};
+    const taskStyle = customColor ? { 
+      backgroundColor: customColor,
+      color: 'white' // Ensure text is readable on custom backgrounds
+    } : {};
     
     if (compact) {
       return (

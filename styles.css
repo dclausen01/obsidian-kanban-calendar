@@ -225,7 +225,8 @@
   transition: background-color 0.2s, transform 0.2s;
 }
 
-.kanban-calendar-task:hover {
+/* Custom colored tasks should not have hover effects that override the color */
+.kanban-calendar-task:not([style*="background-color"]):hover {
   background-color: var(--background-modifier-hover);
 }
 
@@ -247,7 +248,8 @@
   transition: background-color 0.2s, transform 0.2s;
 }
 
-.kanban-calendar-task-compact:hover {
+/* Custom colored tasks should not have hover effects that override the color */
+.kanban-calendar-task-compact:not([style*="background-color"]):hover {
   background-color: var(--background-modifier-hover);
 }
 
@@ -256,11 +258,20 @@
   transform: scale(1.02);
 }
 
-.kanban-calendar-task.completed,
-.kanban-calendar-task-compact.completed {
+/* Completed tasks styling - only apply default green if no custom color is set */
+.kanban-calendar-task.completed:not([style*="background-color"]),
+.kanban-calendar-task-compact.completed:not([style*="background-color"]) {
   opacity: 0.8;
   text-decoration: line-through;
   background-color: var(--color-green);
+  color: var(--text-on-accent);
+}
+
+/* For custom colored completed tasks, just apply opacity and text decoration */
+.kanban-calendar-task.completed[style*="background-color"],
+.kanban-calendar-task-compact.completed[style*="background-color"] {
+  opacity: 0.9;
+  text-decoration: line-through;
   color: var(--text-on-accent);
 }
 
